@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 KeSSie Needle-in-a-Haystack Test
-=================================
-PROPRIETARY & CONFIDENTIAL
+
 
 Tests the full recall pipeline: fog-of-war attention suppression,
 semantic search through conversation store, positional annotation,
