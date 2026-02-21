@@ -1,4 +1,8 @@
-# KeSSie Experiment 3  -  Configuration Guide
+# KeSSie
+
+[![License: KeSSie v1.2](https://img.shields.io/badge/License-KeSSie--Source--Available-blue.svg)](./LICENSE)
+[![Commercial License](https://img.shields.io/badge/Commercial-Inquire-orange.svg)](./COMMERCIAL.md)
+[![CLA signed](https://img.shields.io/badge/CLA-Required-yellow.svg)](./CONTRIBUTING.md)
 
 ## Overview
 
