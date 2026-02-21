@@ -2,13 +2,18 @@
 
 [![License: KeSSie v1.2](https://img.shields.io/badge/License-KeSSie--Source--Available-blue.svg)](./LICENSE)
 [![Commercial License](https://img.shields.io/badge/Commercial-Inquire-orange.svg)](./COMMERCIAL.md)
-[![CLA signed](https://img.shields.io/badge/CLA-Required-yellow.svg)](./CONTRIBUTING.md)
+[![CLA Required](https://img.shields.io/badge/CLA-Required-yellow.svg)](./CONTRIBUTING.md)
 
-## Overview
+## Lossless Linear Serialization
 
-KeSSie is a fog-of-war inference engine that extends any model's context window to millions of tokens through semantic recall. The model operates within its native `--window` (e.g. 131K), while KeSSie maintains a per-conversation cache (`--kessie-cache-size`) of up to tens of millions of tokens. When the model needs context beyond its window, KeSSie recalls it  -  either before generation (pre-gen recall) or mid-generation when the model signals uncertainty.
+KeSSie diverges from traditional context management methods such as lossy compression (summarization) or retrieval-augmented generation (RAG). It implements a Lossless Linear Serialization framework.
 
-The server supports multiple simultaneous conversations, each with its own isolated cache. Clients treat `--kessie-cache-size` as their effective context window.
+### Event-Based State Materialization
+KeSSie maintains conversation history in a high-density Linear State Array rather than keeping the full KV cache in active memory.
+
+* Footprint: Approximately 4 bytes per token. 100M tokens utilize less than 400MB of system RAM.
+* The Materialization Event: Upon a semantic trigger during inference, KeSSie executes a lossless materialization event. The specific KV-state required is re-inflated into the active GPU window. This singular event is faster than standard tool-call latencies.
+* Fidelity: The model accesses historical data with bit-perfect clarity. This eliminates summarization artifacts and removes the quadratic compute overhead associated with processing massive context windows.
 
 ## Quick Start
 
