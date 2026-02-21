@@ -416,20 +416,5 @@ Commands: `/topics`, `/store <topic> <key> <value>`, `/search <query>`, `/stats`
 ## Source-Available? Why not GPL or other truly open license?
 We chose a Source Available model because we believe in transparency and community peer-review, but we also believe that developers should be compensated when their inventions power commercial products. This license allows us to keep the code public while ensuring the project's longevity.
 
-## Technical Overview
-[High-level explanation of the architecture]
-
-## Lossless Linear Serialization
-[The 400MB/100M-token density metric goes here]
-
-## Performance Benchmarks
-[Quantifiable comparisons against O(n) architectures]
-
-## Installation and Requirements
-[Environment setup and kernel dependencies]
-
-## Commercial Licensing
-[Reference to the tiered licensing model and COMMERCIAL.md]
-
 
 
