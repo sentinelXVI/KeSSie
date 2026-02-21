@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
 KeSSie Experiment 3  -  KeSSie Engine
-=====================================
-PROPRIETARY & CONFIDENTIAL
 
 Architecture:
   Dual backend: HuggingFace transformers or vLLM
@@ -14,6 +12,7 @@ Architecture:
   - Conversation token tracking with semantic indexing
   - Auto-recall: embed query -> search conversation index -> inject relevant context
   - Knowledge store: SQLite + FAISS vector search, store_learned/retrieve_learned tools
+     Currently disabled, experiments to follow.
   - Fog-of-war: HF=KV mask, vLLM=prompt-level context management
 
   vLLM Features:
