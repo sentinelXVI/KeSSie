@@ -1,36 +1,30 @@
-## KeSSie Commercial Licensing
-Thank you for your interest in KeSSie! We are committed to keeping KeSSie "Source Available" and free for the community while ensuring the project's long-term sustainability.
+# KeSSie Commercial Licensing
 
-### Who can use KeSSie for Free?
-Under the KeSSie Source Available License v1.2, you do not need a paid license if your use case falls under "Personal Use," which includes:
+KeSSie (Kernel-level Semantic State Inference) utilizes a proprietary Lossless Linear State Engine for Transformer architectures. This document outlines the licensing requirements for commercial entities and the value proposition for enterprise integration.
 
-Students & Educators: Using KeSSie for learning or classroom projects.
+## Technical Specifications: High-Density Persistence
+Standard Transformer implementations require significant VRAM/RAM to maintain KV caches for extended context. KeSSie reduces this footprint by approximately three orders of magnitude through deterministic linear serialization.
 
-Researchers: Academic research and non-commercial experimentation.
+* KeSSie Density: 100M Tokens ≈ 400MB RAM.
+* Standard KV Density: 100M Tokens ≈ 50TB+ RAM (Architecture dependent).
 
-Hobbyists: Personal side projects that do not generate revenue.
+## License Tiers
 
-Open Source Contributors: Developing improvements for the KeSSie ecosystem.
+### Personal and Academic Use
+Use of KeSSie is permitted without charge for the following:
+* Individual hobbyist projects.
+* Non-commercial academic research.
+* Educational purposes and local experimentation.
 
-### Who needs a Commercial License?
-If you or your organization are using KeSSie to generate revenue, you require a Commercial License. This includes:
+### Commercial Use
+A Commercial License is required for any entity that:
+* Integrates KeSSie into a product, service, or application sold or licensed to third parties.
+* Employs KeSSie to process internal data for revenue-generating workflows.
+* Utilizes KeSSie kernels for hosted inference or "Context-as-a-Service" solutions.
 
-Using KeSSie as part of a SaaS or hosted service.
+## Enterprise Benefits
+1. Hardware Arbitrage: Deploy 100M+ token context windows on commodity hardware (e.g., a single high-end consumer GPU) rather than multi-node H100 clusters.
+2. Optimized Kernels: Commercial licenses include access to C++/CUDA-optimized implementations designed for high-throughput production environments.
+3. Legal Indemnity: Provision of warranty and professional support for mission-critical infrastructure.
 
-Integrating KeSSie methods into a proprietary product sold to customers.
-
-Using KeSSie for internal business operations in a for-profit company.
-
-Consultants using KeSSie to deliver paid results to clients.
-
-### Why License Commercially?
-A commercial license provides more than just legal compliance:
-
-Warranty & Indemnity: Standard "Source Available" licenses are "as-is." Commercial licenses can include uptime or performance guarantees.
-
-Removal of Copyleft: You can build proprietary, closed-source extensions without the "viral" requirement of the KeSSie License.
-
-Direct Support: Access to priority bug fixes and architectural consultation.
-
-Inquire for Pricing
-Commercial licensing is tiered based on the size of your organization and the scope of implementation. We offer "Startup Friendly" pricing for small teams.
+For licensing inquiries and enterprise pricing, contact the copyright holder via the repository contact information.
