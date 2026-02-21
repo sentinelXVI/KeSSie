@@ -1,6 +1,6 @@
 # KeSSie Commercial Licensing
 
-KeSSie (Kernel-level Semantic State Inference) utilizes a proprietary Lossless Linear State Engine for Transformer architectures. This document outlines the licensing requirements for commercial entities and the value proposition for enterprise integration.
+KeSSie (KErnel-level Semantic State Inference Engine) utilizes a proprietary Lossless Linear State Engine for Transformer architectures. This document outlines the licensing requirements for commercial entities and the value proposition for enterprise integration.
 
 ## Technical Specifications: High-Density Persistence
 Standard Transformer implementations require significant VRAM/RAM to maintain KV caches for extended context. KeSSie reduces this footprint by approximately three orders of magnitude through deterministic linear serialization.

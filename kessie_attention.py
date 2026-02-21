@@ -1,7 +1,5 @@
 """
 KeSSie Attention Backend for vLLM V1
-=====================================
-PROPRIETARY & CONFIDENTIAL
 
 FA3-style async overlap with per-step shared fog cache.
 

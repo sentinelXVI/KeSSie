@@ -1,7 +1,6 @@
 """
 KeSSie KV Connector for vLLM V1
 ==================================
-PROPRIETARY & CONFIDENTIAL — February 2026
 
 Implements the KeSSie lossless-history + full-fidelity-on-demand invariant
 inside vLLM V1's KV Connector interface.

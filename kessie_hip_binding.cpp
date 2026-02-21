@@ -1,8 +1,7 @@
 /*
  * KeSSie HIP Kernels - PyTorch Extension Binding
  * ================================================
- * PROPRIETARY & CONFIDENTIAL
- *
+ * 
  * Provides torch-callable functions for KeSSie's three HIP kernels.
  *
  * Build:

@@ -1,7 +1,6 @@
 """
 KeSSie HIP Kernels - ctypes Python Interface
 ==============================================
-PROPRIETARY & CONFIDENTIAL
 
 Loads compiled libkessie_hip.so via ctypes and provides Python-callable
 functions that accept PyTorch tensors.

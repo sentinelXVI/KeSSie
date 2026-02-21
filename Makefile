@@ -1,7 +1,6 @@
 # KeSSie HIP Kernels - Makefile
 # ===============================
-# PROPRIETARY & CONFIDENTIAL
-#
+# 
 # Targets:
 #   make all      - Build self-test + shared lib
 #   make test     - Build and run self-test binary

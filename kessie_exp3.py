@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KeSSie Experiment 3  -  KeSSie Engine
+KeSSie Server  -  KeSSie Engine
 
 Architecture:
   Dual backend: HuggingFace transformers or vLLM

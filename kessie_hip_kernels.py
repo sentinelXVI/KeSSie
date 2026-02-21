@@ -1,7 +1,6 @@
 """
 KeSSie HIP-Compatible Kernels for MI250X (gfx90a)
 ====================================================
-PROPRIETARY & CONFIDENTIAL
 
 Triton kernels targeting AMD MI250X via ROCm:
 

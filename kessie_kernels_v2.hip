@@ -1,8 +1,7 @@
 /*
  * KeSSie HIP Kernels v2 — MFMA-Accelerated for MI250X (gfx90a / CDNA2)
  * =====================================================================
- * PROPRIETARY & CONFIDENTIAL
- *
+ * 
  * Three production kernels:
  *   1. kessie_windowed_attn_mfma  — Flash attention with MFMA QK^T and PV
  *   2. kessie_page_evict          — Fog pages below conversation position

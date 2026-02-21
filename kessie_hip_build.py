@@ -1,7 +1,6 @@
 """
 KeSSie HIP Kernel Build Script
 ================================
-PROPRIETARY & CONFIDENTIAL
 
 Compiles kessie_attn_kernel.hip and kessie_hip_binding.cpp into
 a PyTorch extension loadable via `import kessie_hip`.
