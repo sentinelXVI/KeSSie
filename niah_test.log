@@ -1,0 +1,211 @@
+
+======================================================================
+  NIAH Test Run: 2026-02-21T09:30:03.439979
+======================================================================
+╔════════════════════════════════════════════════════════════════════╗
+║  KeSSie Needle-in-a-Haystack Test Suite                            ║
+║  Window: 131,072 tokens | Buffer: 10,000,000 tokens               ║
+╚════════════════════════════════════════════════════════════════════╝
+
+======================================================================
+TEST 1: Conversation Store Depth Recall
+======================================================================
+  (using standalone stubs — kessie_exp3 not importable)
+  Standalone mode: testing embedding + search logic only
+
+  Depth      1,000 tokens | needle: 'recipe'
+    ✓ FOUND | score=0.5814
+
+  Depth     10,000 tokens | needle: 'code'
+    ✓ FOUND | score=0.4912
+
+  Depth    100,000 tokens | needle: 'coordinates'
+    ✓ FOUND | score=0.4015
+
+  Depth    500,000 tokens | needle: 'meeting'
+    ✓ FOUND | score=0.4753
+
+  Depth  1,000,000 tokens | needle: 'capital'
+    ✓ FOUND | score=0.5257
+
+  Depth  5,000,000 tokens | needle: 'code'
+    ✓ FOUND | score=0.4912
+
+  Depth 10,000,000 tokens | needle: 'recipe'
+    ✓ FOUND | score=0.5814
+
+======================================================================
+TEST 2: Fog Attention Bias at 131K Window Scale
+======================================================================
+
+  KV length: 131,072 | fog_boundary: 65,536
+  Recall positions: [100, 1000, 10000, 50000, 65000, 65536, 100000]
+  Compute time: 301.0ms
+    ✓ Shape is (1,1,1,131072)
+    ✓ Position 0 (deepest fog) is most negative
+    ✓ Position 0 value ≈ -fog_alpha (-0.5)
+    ✓ Non-recalled fog pos 500 is negative
+    ✓ Clear zone pos 66536 is zero
+    ✓ Recall pos    100 = +0.1 (got 0.1000)
+    ✓ Recall pos   1000 = +0.1 (got 0.1000)
+    ✓ Recall pos  10000 = +0.1 (got 0.1000)
+    ✓ Recall pos  50000 = +0.1 (got 0.1000)
+    ✓ Recall pos  65000 = +0.1 (got 0.1000)
+    ✓ Recall pos  65536 = +0.1 (got 0.1000)
+    ✓ Recall pos 100000 = +0.1 (got 0.1000)
+    ✓ Attention ordering: recalled > clear > fogged
+
+  64-layer cache hit test:
+    ✓ 64 layers in 340µs (< 1000µs target)
+  Fog buffer memory: 1024 KB (2 × 131,072 × f32)
+
+======================================================================
+TEST 3: Positional Annotation & Turn Tracking
+======================================================================
+
+  Simulated: 100 turns, 15,000 tokens
+    ✓ Position 0: role=user, turn=1/100
+    ✓ Position 150 (mid-assistant turn 1): role=assistant
+    ✓ Position 14850 (last assistant turn): role=assistant
+    ✓ Distance from pos 0 = 15,000 (should be 15000)
+    ✓ Distance from last pos = 1 (should be 1)
+    ✓ Position 600: turn 5 should be user turn 5
+
+  Scale test: simulating 10M token history tracking...
+  40,000 turns tracked in 6.9ms
+    ✓ Lookup at 5M: turn 20001/40000 (user) in 396µs
+
+======================================================================
+TEST 4: Mid-Generation Recall Trigger Detection
+======================================================================
+
+  Hedging pattern detection:
+    ✓ Detects: 'as i mentioned' at token 32
+    ✓ Detects: 'if i recall' at token 32
+    ✓ Detects: 'i believe you' at token 32
+    ✓ Detects: 'earlier in our conversation' at token 32
+    ✓ Detects: 'i'm not sure if' at token 32
+
+  Clean text (should NOT trigger):
+    ✓ No trigger: 'The answer to your question is straightf...'
+    ✓ No trigger: 'def fibonacci(n):
+    if n <= 1: return ...'
+    ✓ No trigger: 'Hello! How can I help you today?...'
+    ✓ No trigger before 8 tokens
+    ✓ No trigger at token 13 (not multiple of 8)
+    ✓ Triggers at token 16 (multiple of 8)
+
+  Repetition detection:
+    ✓ Detects repetitive text at token 64
+
+======================================================================
+TEST 5: Multi-Needle Retrieval
+======================================================================
+
+  Index size: 503 chunks
+  Needles at: {"capital": "9,950,000", "recipe": "9,500,000", "coordinates": "5,000,000"}
+    ✓ capital at depth     50,000: FOUND (score=0.5257)
+    ✓ recipe at depth    500,000: FOUND (score=0.5814)
+    ✓ coordinates at depth  5,000,000: FOUND (score=0.4015)
+
+======================================================================
+TEST 6: 10M Token Buffer Capacity & Search Performance
+======================================================================
+
+  Building index with 78,125 entries (10,000,000 tokens / 128 granularity)
+  Matrix build: 369ms
+  Matrix size: 76.3 MB
+    ✓ Numpy search: 6.9ms (< 100ms target)
+    ✓ Needle found at rank 1
+
+  FAISS index build: 42ms
+    ✓ FAISS search: 3.34ms (< 10ms target)
+    ✓ FAISS finds needle at rank 1
+  FAISS index memory: 76.3 MB
+
+  10M buffer memory estimate:
+    Token store:  38 MB
+    Index:        76 MB
+    Total:        114 MB
+    ✓ Total buffer memory 114 MB (< 1000 MB)
+
+======================================================================
+TEST 7: Full Integration (Live Model)
+======================================================================
+
+  Model: ../qwen_VL_32B/.
+  Target depth: 10,000,000 tokens
+  GPUs: 4 | KV dtype: fp8_e5m2 | Window: 131072
+  Building 10,000,000 token haystack...
+  Total conversation: 10,000,026 tokens
+  Needle at position: 0
+  Needle depth: 10,000,026 tokens from end
+  Index entries: 1001
+
+  Pre-flight recall test...
+  ✓ _auto_recall found: [Recalled from turn 1/1001 (user), ~10000k tokens ago:]
+The capital of Zyntaria is Florquen, founded in 1847 by explorer...
+  Prompt contains needle: True
+  Prompt length: 1178 chars, ~294 tokens
+
+  Query: What is the capital of Zyntaria?
+  Response: The capital of Zyntaria is **Florquen**, founded in 1847 by explorer Halvek Renn.
+    ✓ Response contains 'Florquen'
+    ✓ Response contains '1847'
+    ✓ Response contains 'Halvek Renn'
+
+======================================================================
+TEST 8: Mid-Generation Recall (Live Model, Streaming)
+======================================================================
+
+  Model: ../qwen_VL_32B/.
+  Planting needle at 9,000,000 token depth
+  Needle: We decided the Korthax pipeline should use 7 shards with replication factor 3, r...
+  Query:  system-prompted hedge + direct Korthax question
+  Total conversation: 9,000,056 tokens
+  Index entries: 901
+  ✓ _mid_gen_recall sanity check: needle reachable
+    [Recalled from turn 1/901 (user), ~9000k tokens ago:]
+We decided the Korthax pipeline should use 7 shards with replicati...
+
+  Disabling pre-gen recall to force mid-gen path...
+  System message instructs model to hedge instead of hallucinate...
+  Streaming query (system-prompted hedge)...
+  Response (794 chars):
+    [restate the topic and details being asked about: the exact Korthax pipeline configuration, including port number, shard count, compression algorithm, and failover timeout]... let me see if I can remember from our earlier conversation...
+
+I... let me see if I can remember from our earlier conversation...
+
+Yes, I recall the configuration we finalized for the Korthax pipeline:
+
+- **Port number**: 91
+
+  Mid-gen event log (3 events):
+    [0] uncertainty_detected: {"pattern": "let me see if i can remember", "token_count": 48, "tail": "ver timeout]... let me see if i can remember from our earlier conversation...\n\ni"}
+    [1] recall_found: {"token_count": 48, "recalled_chars": 1111, "recalled_preview": "[Recalled from turn 1/902 (user), ~9000k tokens ago:]\nWe decided the Korthax pipeline should use 7 shards with replicati", "generated_
+    [2] resume: {"new_prompt_tokens": 501, "new_req_id": "kessie-c718aca80b53"}
+
+  Event summary:
+    uncertainty_detected: 1
+    recall_found:        1
+    recall_empty:        0
+    resume:              1
+    ✓ Uncertainty was detected (hedge pattern or repetition fired)
+    ✓ Mid-gen recall found the needle in conversation store
+    ✓ Generation was aborted and resumed with recalled context
+    ✓ Recalled content contains needle data
+    Recalled preview: [Recalled from turn 1/902 (user), ~9000k tokens ago:]
+We decided the Korthax pipeline should use 7 shards with replicati
+
+  Response fragment check (secondary):
+    ✓ Response contains '9147'
+    ✓ Response contains '847'
+    ✓ Response contains 'zstd'
+
+======================================================================
+SUMMARY
+======================================================================
+  Passed: 58/58
+  Failed: 0/58
+
+  ALL 58 TESTS PASSED ✓
