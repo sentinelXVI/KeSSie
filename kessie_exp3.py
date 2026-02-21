@@ -678,7 +678,7 @@ class SessionStats:
         return self.prompt_tokens / p if p > 0 else 0
 
     def log(self, cache_stats=None, batch_stats=None, backend="hf", vllm_engine=None):
-        """Log comprehensive session debug info."""
+        """Log full session debug info."""
         lines = []
         lines.append(f"-- Session Debug ------------------------------")
         lines.append(f"  Prompt:     {self.prompt_tokens} tokens"
@@ -841,17 +841,16 @@ class BatchGenManager:
 
 class ConversationManager:
     """
-    Manages per-conversation KeSSie caches with concurrency control.
+    Manages per-request KeSSie caches with concurrency control.
 
     - T simultaneous conversations (--conversation-threads)
     - Q waiting in queue when all threads busy
-    - Each conversation gets its own KeSSieCache (isolated fog/recall state)
-    - Caches evicted on conversation end or inactivity timeout
-    - When no conversations active, all caches freed
+    - Each request gets a fresh KeSSieCache
+    - Cache evicted at end of every turn (stateless between requests)
+    - Client resends full history each turn
 
-    Client sends conversation_id in request. ConversationManager routes to
-    the correct cache, creating/evicting as needed. Client refills cache
-    on reconnect (KeSSie cache = external context window).
+    Client sends conversation_id in request. ConversationManager creates
+    a cache, runs inference, evicts. No server-side state between turns.
     """
 
     def __init__(self, max_threads: int = 4, max_queue: int = 64,
@@ -868,8 +867,6 @@ class ConversationManager:
 
         # Active conversation caches: conv_id -> KeSSieCache
         self._caches: Dict[str, KeSSieCache] = {}
-        # Per-conversation lock: prevents eviction during inference
-        self._conv_locks: Dict[str, threading.Lock] = {}
         self._lock = threading.Lock()
 
         # Concurrency: T threads active, Q queued
@@ -877,128 +874,78 @@ class ConversationManager:
         self._queue_sem = threading.Semaphore(max_threads + max_queue)
 
         # Stats
-        self._total_conversations = 0
+        self._total_requests = 0
         self._total_evictions = 0
-        self._cache_hits = 0
-        self._cache_misses = 0
 
     def acquire(self, conv_id: str, timeout: float = 120.0) -> KeSSieCache:
         """
-        Get or create a cache for conv_id. Blocks if queue is full.
-        Returns the KeSSieCache for this conversation.
+        Create a fresh cache for this request. Blocks if queue is full.
+        Returns a new KeSSieCache.
         Raises TimeoutError if can't acquire within timeout.
         """
-        # Queue gate: limits total (active + waiting) to max_threads + max_queue
         if not self._queue_sem.acquire(timeout=timeout):
             raise TimeoutError(
                 f"Server at capacity: {self.max_threads} active, "
                 f"{self.max_queue} queued. Try again later.")
 
-        # Thread gate: limits active generation to max_threads
         if not self._thread_sem.acquire(timeout=timeout):
             self._queue_sem.release()
             raise TimeoutError(
                 f"All {self.max_threads} conversation threads busy. "
                 f"Queued request timed out after {timeout}s.")
 
+        cache = KeSSieCache(
+            window_size=self.window_size,
+            fog_alpha=self.fog_alpha,
+            fog_start=self.fog_start,
+            kv_cache_dtype=self.kv_cache_dtype,
+            max_conversation_tokens=self.cache_size)
+
         with self._lock:
-            if conv_id in self._caches:
-                self._cache_hits += 1
-                cache = self._caches[conv_id]
-            else:
-                self._cache_misses += 1
-                self._total_conversations += 1
-                cache = KeSSieCache(
-                    window_size=self.window_size,
-                    fog_alpha=self.fog_alpha,
-                    fog_start=self.fog_start,
-                    kv_cache_dtype=self.kv_cache_dtype,
-                    max_conversation_tokens=self.cache_size)
-                self._caches[conv_id] = cache
-                self._conv_locks[conv_id] = threading.Lock()
-            # Hold per-conversation lock during inference
-            self._conv_locks[conv_id].acquire()
+            self._caches[conv_id] = cache
+            self._total_requests += 1
 
         return cache
 
     def release(self, conv_id: str):
         """Release the thread slot after generation completes."""
-        with self._lock:
-            lock = self._conv_locks.get(conv_id)
-            if lock:
-                try:
-                    lock.release()
-                except RuntimeError:
-                    pass  # already released
         self._thread_sem.release()
         self._queue_sem.release()
 
     def end_conversation(self, conv_id: str):
-        """
-        End a conversation. Waits for any active inference to finish,
-        then evicts the cache. Client refills on reconnect.
-        """
+        """Evict the cache. Called at end of every turn."""
         with self._lock:
-            lock = self._conv_locks.get(conv_id)
-
-        if lock:
-            # Wait for inference to finish (blocks until release() called)
-            lock.acquire()
-            lock.release()
-
-        with self._lock:
-            if conv_id in self._caches:
-                self._caches[conv_id].full_reset()
-                del self._caches[conv_id]
-                del self._conv_locks[conv_id]
+            cache = self._caches.pop(conv_id, None)
+            if cache:
+                cache.full_reset()
                 self._total_evictions += 1
-                logger.info(f"Conversation {conv_id[:12]}... ended, cache evicted")
-            # If no conversations left, ensure everything is clean
             if not self._caches:
-                self._force_cleanup()
-
-    def _force_cleanup(self):
-        """Called when no conversations active. Ensures zero memory held."""
-        import gc
-        self._caches.clear()
-        self._conv_locks.clear()
-        gc.collect()
-        logger.info("All conversations ended — caches fully released")
+                import gc
+                gc.collect()
 
     @property
     def stats(self) -> dict:
         with self._lock:
+            active = len(self._caches)
             active_tokens = sum(len(c.conversation_tokens) for c in self._caches.values())
-            active_index = sum(len(c.index_embeddings) for c in self._caches.values())
             return {
-                "active_conversations": len(self._caches),
+                "active_conversations": active,
                 "max_threads": self.max_threads,
                 "max_queue": self.max_queue,
                 "cache_size_per_conversation": self.cache_size,
-                "total_conversations": self._total_conversations,
+                "total_requests": self._total_requests,
                 "total_evictions": self._total_evictions,
-                "cache_hits": self._cache_hits,
-                "cache_misses": self._cache_misses,
                 "active_tokens": active_tokens,
-                "active_index_entries": active_index,
-                "active_memory_mb": round(
-                    (active_tokens * 4 + active_index * 256 * 4) / 1048576, 1),
             }
 
-    def get_cache(self, conv_id: str) -> Optional[KeSSieCache]:
-        """Peek at a cache without acquiring (for stats/debug)."""
-        with self._lock:
-            return self._caches.get(conv_id)
-
     def list_conversations(self) -> List[dict]:
-        """List active conversations with stats."""
+        """List active conversations (in-flight requests only)."""
         with self._lock:
             return [{
                 "conversation_id": cid,
                 "tokens": len(cache.conversation_tokens),
                 "turns": cache._turn_counter,
                 "index_entries": len(cache.index_embeddings),
-                "active": self._conv_locks.get(cid, threading.Lock()).locked(),
             } for cid, cache in self._caches.items()]
 
 
@@ -1180,6 +1127,21 @@ class LibrarianEngine:
         # Observable event log for mid-gen recall testing
         self._mid_gen_events = []
         self._last_user_query = ""
+
+    @staticmethod
+    def _extract_text(content):
+        """Extract text from message content. Handles both str and multimodal list format."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+                elif isinstance(block, str):
+                    parts.append(block)
+            return " ".join(parts)
+        return str(content) if content else ""
 
     @staticmethod
     def _resolve_kv_dtype(dtype_str):
@@ -1523,7 +1485,8 @@ class LibrarianEngine:
 
 
     def _inject_system(self, messages, extra_tools=None):
-        """Prepend system context. Only advertise tools if client provides them."""
+        """Inject system context. Tool instructions if client provides them,
+        plus KeSSie recall addendum postpended to the system message."""
         parts = []
 
         # Only add tool instructions if client sent tools
@@ -1549,23 +1512,34 @@ class LibrarianEngine:
 
         system_content = "\n\n".join(parts) if parts else ""
 
-        if not system_content:
-            return messages
-
+        # Build result with system content prepended
         has_system = False
         result = []
         for m in messages:
             if m.get("role") == "system":
                 if not has_system:
-                    result.append({"role": "system",
-                                   "content": system_content + "\n\n" + m["content"]})
+                    content = m["content"]
+                    if system_content:
+                        content = system_content + "\n\n" + content
+                    result.append({"role": "system", "content": content})
                     has_system = True
                 else:
                     result.append(m)
             else:
                 result.append(m)
-        if not has_system:
+        if not has_system and system_content:
             result.insert(0, {"role": "system", "content": system_content})
+            has_system = True
+
+        # Postpend KeSSie recall addendum to the system message
+        if has_system:
+            for i, m in enumerate(result):
+                if m.get("role") == "system":
+                    result[i] = {**m, "content": m["content"] + "\n\n" + self._KESSIE_SYSTEM_ADDENDUM}
+                    break
+        else:
+            result.insert(0, {"role": "system", "content": self._KESSIE_SYSTEM_ADDENDUM})
+
         return result
 
     def _get_device(self):
@@ -1734,7 +1708,7 @@ class LibrarianEngine:
                         aug.append({"role":"system","content": recalled})
                 build = aug
             else:
-                # No system message — prepend recalled as system
+                # No system message  -  prepend recalled as system
                 build.insert(0, {"role":"system","content": recalled})
         # Only pass client tools to chat template if provided
         tools_for_template = extra_tools if extra_tools else None
@@ -1803,6 +1777,52 @@ class LibrarianEngine:
 
         header = f"[Recalled from turn {turn_num}/{total_turns} ({role}), {dist_str}:]"
         return f"{header}\n{text}\n[End recalled]"
+
+    # ----- Conversation ingestion: populate cache + index BEFORE recall -----
+
+    def _ingest_conversation(self, messages: List[Dict]):
+        """
+        Parse all messages into the KeSSie cache: conversation tokens,
+        turn boundaries, and semantic index. Must run BEFORE _auto_recall
+        and _build_prompt so the fog zone is searchable.
+
+        Skips if cache already has tokens (tool-loop re-entry).
+        """
+        if self.cache.conversation_tokens:
+            return  # already ingested this request
+
+        embedder = getattr(self.store, '_embedder', None)
+        gran = self.cache.index_granularity
+
+        for m in messages:
+            role = m.get("role", "user")
+            if role == "system":
+                continue  # system messages don't go in conversation store
+            text = self._extract_text(m.get("content", ""))
+            if not text:
+                continue
+            toks = self.tokenizer.encode(text, add_special_tokens=False)
+            if not toks:
+                continue
+            self.cache.append_conversation(toks, role=role)
+
+        # Build semantic index over the full conversation
+        if embedder and self.cache.conversation_tokens:
+            n = len(self.cache.conversation_tokens)
+            for start in range(0, n, gran):
+                end = min(start + gran, n)
+                chunk_toks = self.cache.conversation_tokens[start:end]
+                chunk_text = self.tokenizer.decode(chunk_toks, skip_special_tokens=True).strip()
+                if not chunk_text:
+                    continue
+                try:
+                    emb = embedder(chunk_text)
+                    self.cache.index_embeddings.append(emb)
+                    self.cache.index_positions.append(start)
+                except Exception:
+                    pass
+
+    # ----- Semantic recall -----
 
     def _auto_recall(self, user_message):
         """
@@ -1913,6 +1933,19 @@ class LibrarianEngine:
     # Known tools that server handles internally
     KNOWN_TOOLS = set()
 
+    # Postpended to system prompt on every request.
+    # Forces the model to restate the topic before hedging,
+    # giving mid-gen recall searchable keywords.
+    _KESSIE_SYSTEM_ADDENDUM = (
+        "When asked about details from a previous conversation, "
+        "first restate what topic and specific details are being asked about, "
+        "then indicate you need to recall. Example format:\n"
+        "'[restate the topic and details]... "
+        "let me see if I can remember from our earlier conversation...'\n"
+        "Do not make up or hallucinate specific numbers, names, or configurations. "
+        "Either recall them accurately or use the format above."
+    )
+
     def _generate_stream_inner(self, messages, max_tool_rounds, extra_tools=None, sampling=None):
         """
         Stream ALL rounds. Server filters <tool_call> blocks for KNOWN tools only.
@@ -1925,24 +1958,23 @@ class LibrarianEngine:
         req_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
 
         for rnd in range(max_tool_rounds + 1):
-            user_msgs = [m["content"] for m in conversation if m["role"]=="user"]
+            # 1. Ingest all messages into KeSSie cache + semantic index
+            self._ingest_conversation(conversation)
+
+            # 2. Recall from indexed conversation history
+            user_msgs = [self._extract_text(m["content"]) for m in conversation if m["role"]=="user"]
             recalled = self._auto_recall(user_msgs[-1]) if user_msgs else ""
             self._last_user_query = user_msgs[-1] if user_msgs else ""
 
-            # KeSSie context management: fog-of-war message windowing
+            # 3. Fog windowing: prompt fits in clear zone (window * fog_start)
+            prompt_budget = int(self.window_size * self.fog_start)
             if self.backend == "vllm":
                 windowed = self.context_manager.apply_fog_windowing(
-                    conversation, self.tokenizer, max_prompt_tokens=self.window_size)
+                    conversation, self.tokenizer, max_prompt_tokens=prompt_budget)
             else:
                 windowed = conversation
 
             prompt = self._build_prompt(windowed, recalled, extra_tools)
-
-            # Track user turn in conversation store for positional awareness
-            if user_msgs:
-                user_toks = self.tokenizer.encode(user_msgs[-1], add_special_tokens=False)
-                if user_toks:
-                    self.cache.append_conversation(user_toks, role="user")
 
             full_text = ""
             generated_ids = []
@@ -2085,24 +2117,23 @@ class LibrarianEngine:
         conversation = self._inject_system(conversation, extra_tools)
 
         for rnd in range(max_tool_rounds + 1):
-            user_msgs = [m["content"] for m in conversation if m["role"]=="user"]
+            # 1. Ingest all messages into KeSSie cache + semantic index
+            self._ingest_conversation(conversation)
+
+            # 2. Recall from indexed conversation history
+            user_msgs = [self._extract_text(m["content"]) for m in conversation if m["role"]=="user"]
             recalled = self._auto_recall(user_msgs[-1]) if user_msgs else ""
             self._last_user_query = user_msgs[-1] if user_msgs else ""
 
-            # KeSSie context management: fog-of-war message windowing
+            # 3. Fog windowing: prompt fits in clear zone (window * fog_start)
+            prompt_budget = int(self.window_size * self.fog_start)
             if self.backend == "vllm":
                 windowed = self.context_manager.apply_fog_windowing(
-                    conversation, self.tokenizer, max_prompt_tokens=self.window_size)
+                    conversation, self.tokenizer, max_prompt_tokens=prompt_budget)
             else:
                 windowed = conversation
 
             prompt = self._build_prompt(windowed, recalled, extra_tools)
-
-            # Track user turn in conversation store
-            if user_msgs:
-                user_toks = self.tokenizer.encode(user_msgs[-1], add_special_tokens=False)
-                if user_toks:
-                    self.cache.append_conversation(user_toks, role="user")
 
             generated, prompt_len = self._do_generate(prompt, stats, conversation, sampling, recalled=recalled)
             text = self.tokenizer.decode(generated, skip_special_tokens=True)
@@ -2214,11 +2245,11 @@ class LibrarianEngine:
                         end = min(start + len(recall_toks), prompt_len)
                         recall_positions = set(range(start, end))
                     else:
-                        # Can't find — mark from position 0
+                        # Can't find  -  mark from position 0
                         recall_toks = self.tokenizer.encode(recalled, add_special_tokens=False)
                         recall_positions = set(range(0, min(len(recall_toks), prompt_len)))
                 else:
-                    # No prompt text — approximate from position 0
+                    # No prompt text  -  approximate from position 0
                     recall_toks = self.tokenizer.encode(recalled, add_special_tokens=False)
                     recall_positions = set(range(0, min(len(recall_toks), prompt_len)))
 
@@ -2360,7 +2391,7 @@ class LibrarianEngine:
         if embedder is None:
             return ""
 
-        # Strip hedge phrases from search text — they add noise, not signal.
+        # Strip hedge phrases from search text  -  they add noise, not signal.
         # We want to search with the topical content (e.g. "Korthax pipeline 
         # configuration shard count port compression failover timeout")
         search_text = generated_text.lower()
@@ -2372,7 +2403,7 @@ class LibrarianEngine:
             search_text = search_text.replace(filler, "")
         search_text = " ".join(search_text.split())  # collapse whitespace
 
-        # Also include the user's original query — best keywords are there
+        # Also include the user's original query  -  best keywords are there
         user_query = getattr(self, '_last_user_query', '')
         if user_query:
             combined_search = search_text + " " + user_query
@@ -2500,7 +2531,7 @@ class LibrarianEngine:
         if token_count < 8:
             return False
 
-        # Check every 8 tokens (was 16 — too sparse for short hedges)
+        # Check every 8 tokens (was 16  -  too sparse for short hedges)
         if token_count % 8 != 0:
             return False
 
@@ -2641,7 +2672,7 @@ class LibrarianEngine:
                                 "trigger": "eos_hedge",
                             })
                             first_token = True
-                            continue  # Don't break — read from new request
+                            continue  # Don't break  -  read from new request
                         else:
                             self._mid_gen_events.append({
                                 "event": "recall_empty",
@@ -2727,7 +2758,7 @@ class LibrarianEngine:
                             "new_prompt_tokens": new_pl,
                             "new_req_id": new_req_id,
                         })
-                        # Continue the while loop — next tokens come from new request
+                        # Continue the while loop  -  next tokens come from new request
                         first_token = True  # will get new prefill timing
 
                     else:
@@ -3033,16 +3064,11 @@ class Handler(BaseHTTPRequestHandler):
                         try: self._json({"error":str(e)},500)
                         except: pass
             finally:
-                # Always restore and release
+                # Turn done. Evict this conversation's cache.
+                # Client resends history on next request.
                 _engine.cache = original_cache
                 _engine.conv_mgr.release(conv_id)
-
-        elif self.path == "/v1/conversations/end":
-            conv_id = req.get("conversation_id")
-            if not conv_id:
-                self._json({"error": "conversation_id required"}, 400); return
-            _engine.conv_mgr.end_conversation(conv_id)
-            self._json({"status": "ended", "conversation_id": conv_id})
+                _engine.conv_mgr.end_conversation(conv_id)
 
         elif self.path == "/v1/conversations/list":
             self._json({
