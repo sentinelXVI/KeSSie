@@ -1,5 +1,5 @@
 ![License: KeSSie v1.2](https://img.shields.io/badge/License-KeSSie--Source--Available-blue.svg)
-KeSSie Source Available License v1.2
+## KeSSie Source Available License v1.2
 
 Copyright (c) 2026 Phillip Allison. All rights reserved.
 
