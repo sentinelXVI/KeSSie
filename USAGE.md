@@ -1,0 +1,1 @@
+Note on Licensing: KeSSie is free for personal, educational, and non-commercial research use. For commercial deployment or integration into revenue-generating products, a separate license is required. See COMMERCIAL.md for details.
