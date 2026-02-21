@@ -1,0 +1,79 @@
+KeSSie Source Available License v1.2
+
+Copyright (c) 2026 Phillip Allison. All rights reserved.
+
+This License Agreement (the "Agreement") governs the use, reproduction, modification, and distribution of the Software, as defined below. By accessing, using, copying, modifying, or distributing the Software, You agree to be bound by the terms of this Agreement. This Agreement is legally binding and extends to all Modified Versions, Derivative Works, or implementations of the Methods or processes defined within the Software, ensuring that any such modifications, derivations, or reverse-engineered adaptations are subject to the same terms and restrictions herein.
+
+1. DEFINITIONS
+
+For the purposes of this Agreement:
+
+"Software" means the KeSSie source code, documentation, associated files, algorithms, methods, processes, and any enhancements or updates provided in this repository or otherwise by the copyright holder, including the KeSSie Model Enhancement and any related intellectual property.
+
+"You" or "Licensee" means the individual or entity exercising permissions granted by this Agreement.
+
+"Personal Use" means use of the Software by an individual solely for non-commercial purposes, including but not limited to learning, research, experimentation, and personal projects that do not generate revenue or support any revenue-generating activities.
+
+"Commercial Use" means any use of the Software that directly or indirectly generates revenue, supports revenue-generating activities, or is undertaken by or on behalf of a commercial entity. This includes, without limitation:
+  - Offering the Software as a hosted or managed service;
+  - Integrating the Software into a product, service, or application that is sold, licensed, or otherwise provided to third parties for compensation;
+  - Employing the Software in internal business operations, production environments, or workflows that facilitate commercial activities;
+  - Using the Software to provide consulting, advisory, or other services to clients or customers;
+  - Deploying the Software in any environment that supports or enables commercial endeavors.
+
+"Modified Version" means any version of the Software that has been altered, adapted, enhanced, or otherwise changed from the original Software, including but not limited to changes to the source code, integration with other software, or implementations of the Methods or processes described therein.
+
+"Derivative Work" means any work based upon the Software or any preexisting elements thereof, consistent with the definition under applicable copyright law (e.g., 17 U.S.C. § 101), including but not limited to any modification, adaptation, translation, abridgment, condensation, elaboration, or other recasting, transformation, or adaptation that, as a whole, constitutes an original work of authorship. For clarity, Derivative Works include, without limitation, any software, process, or method that incorporates, replicates, or is derived from the algorithms, techniques, or methodologies embodied in the Software, whether through direct copying, modification, reverse engineering, decompilation, disassembly, or any other means of analysis or extraction.
+
+"Method" means any algorithm, process, technique, procedure, or methodology embodied in, described by, or derived from the Software, including those related to model enhancement or similar functionalities. This includes any reverse-engineered or independently developed implementations that utilize or replicate the core concepts, logic, or operational principles defined by the Software.
+
+2. GRANT OF LICENSE FOR PERSONAL USE
+
+Subject to the terms and conditions of this Agreement, the copyright holder hereby grants You a non-exclusive, non-transferable, royalty-free license to use, copy, modify, and create Derivative Works of the Software solely for Personal Use. This grant is provided free of charge and is limited as follows:
+
+  a. You must reproduce this entire Agreement, including the copyright notice, in all copies, substantial portions, Modified Versions, or Derivative Works of the Software.
+  b. Any modifications You make to the Software must be clearly identified as such, including by prominently marking the modified files or versions with notations indicating the nature, date, and authorship of the changes.
+  c. You may distribute copies, Modified Versions, or Derivative Works of the Software only to other individuals for their Personal Use, provided that such distribution is not for Commercial Use and that all recipients are expressly bound by the terms of this Agreement. Any distribution must include a copy of this Agreement and require the recipient to agree to its terms as a condition of use.
+  d. All Modified Versions and Derivative Works, including any implementations of the Methods (whether through reverse engineering or otherwise), must be licensed under this exact Agreement, ensuring that the restrictions on Commercial Use and other terms apply in perpetuity to all subsequent users, modifiers, or distributors. This provision creates a binding obligation on all Derivative Works, making this Agreement applicable to any chain of modifications, derivations, or reverse-engineered adaptations.
+
+3. COMMERCIAL USE RESTRICTIONS AND PROHIBITIONS ON REVERSE ENGINEERING
+
+Any Commercial Use of the Software, including any Modified Versions, Derivative Works, or implementations of the Methods, is strictly prohibited without obtaining a separate commercial license agreement from the copyright holder. To inquire about or obtain such a commercial license, please contact the copyright holder at the provided contact information.
+
+You agree not to reverse engineer, decompile, disassemble, or otherwise attempt to derive the source code, algorithms, Methods, or underlying structure of the Software, except to the extent expressly permitted by applicable law notwithstanding this prohibition. Any use of knowledge gained from such activities to create, develop, or implement similar methods, processes, or software for Commercial Use is expressly forbidden and shall be deemed a Derivative Work subject to this Agreement.
+
+Any use of the Software, Modified Versions, Derivative Works, or Methods for Commercial Use without a valid commercial license constitutes a material breach of this Agreement and may infringe applicable copyright, patent, or other intellectual property laws, potentially subjecting You to legal remedies, including but not limited to injunctions, damages, attorneys' fees, and disgorgement of profits.
+
+4. CONTRIBUTIONS
+
+If You submit any contributions to the Software, including but not limited to pull requests, patches, code snippets, or suggestions containing code (collectively, "Contributions"), You hereby grant the copyright holder a perpetual, irrevocable, worldwide, non-exclusive, royalty-free, fully paid-up license to reproduce, modify, distribute, sublicense, and otherwise exploit Your Contributions in any manner, including under commercial terms, without any obligation to compensate You or attribute authorship to You, unless otherwise agreed in writing. All Contributions shall be deemed incorporated into the Software and subject to this Agreement.
+
+5. INTELLECTUAL PROPERTY RIGHTS
+
+The copyright holder retains all rights, title, and interest in and to the Software, Methods, and any Derivative Works, including all copyrights, patents, trade secrets, and other intellectual property rights. This Agreement does not transfer any ownership rights to You. You agree not to remove, alter, or obscure any proprietary notices in the Software.
+
+6. DISCLAIMER OF WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "WITH ALL FAULTS," WITHOUT WARRANTY OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. THE COPYRIGHT HOLDER DOES NOT WARRANT THAT THE SOFTWARE WILL MEET YOUR REQUIREMENTS, OPERATE WITHOUT INTERRUPTION, BE ERROR-FREE, OR ACHIEVE ANY INTENDED RESULT. YOU ASSUME ALL RISK ASSOCIATED WITH THE USE OR PERFORMANCE OF THE SOFTWARE.
+
+7. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL, OR PUNITIVE DAMAGES (INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, GOODWILL, OR BUSINESS OPPORTUNITIES) ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE, METHODS, MODIFIED VERSIONS, DERIVATIVE WORKS, OR THIS AGREEMENT, WHETHER IN AN ACTION OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY, OR OTHERWISE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+8. TERMINATION
+
+This Agreement shall terminate automatically and immediately upon any breach by You of its terms or conditions. Upon termination, You must immediately cease all use of the Software, Methods, Modified Versions, and Derivative Works, and destroy or delete all copies thereof in Your possession or control. Termination does not affect the copyright holder's rights to enforce this Agreement against any prior breaches.
+
+9. GENERAL PROVISIONS
+
+a. This Agreement constitutes the entire understanding between You and the copyright holder regarding the Software and supersedes all prior or contemporaneous agreements.
+
+b. If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
+
+c. This Agreement shall be governed by and construed in accordance with the laws of the State of Texas, United States, without regard to its conflict of laws principles. Any disputes arising under this Agreement shall be resolved exclusively in the state or federal courts located in Travis County, Texas.
+
+d. No waiver of any term of this Agreement shall be deemed a further or continuing waiver of such term or any other term, and the copyright holder's failure to assert any right or provision under this Agreement shall not constitute a waiver thereof.
+
+e. The copyright holder reserves the right to amend this Agreement at any time, with such amendments applying prospectively to future uses of the Software. Continued use after amendment constitutes acceptance of the revised terms.
+
+f. This Agreement is binding upon and shall inure to the benefit of the parties' successors and permitted assigns. You may not assign this Agreement without the prior written consent of the copyright holder.
