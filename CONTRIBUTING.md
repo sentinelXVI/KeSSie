@@ -1,4 +1,4 @@
-KeSSie Individual Contributor License Agreement
+## KeSSie Individual Contributor License Agreement
 By submitting a "Contribution" (code, documentation, or other materials) to the KeSSie repository, You agree to the following:
 
 Grant of Rights: You grant Phillip Allison a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable license to reproduce, prepare derivative works of, publicly display, and sublicense Your Contributions.
